@@ -1,11 +1,11 @@
 import React, { useContext } from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import LandingPage from './components/LandingPage.tsx';
-import MoodSelectionScreen from './components/MoodSelectionScreen.tsx';
-import MoodBoardInterface from './components/MoodBoardInterface.tsx';
+import Products from './components/Products.tsx';
 import ChatbotPage from './components/ChatbotPage.tsx';
 import AuthScreen from './components/AuthScreen.tsx';
 import ProtectedRoutes from './components/ProtectedRoutes.tsx';
+import FavoritesPage from './components/FavouritesPage.tsx';
 
 export default function App() {
   return (
@@ -14,9 +14,9 @@ export default function App() {
           <Route path ="/auth" element={<AuthScreen />} />
           <Route path="/" element={<ProtectedRoutes />}>
             <Route index element={<LandingPage />} />
-            <Route path="/mood-selection" element={<MoodSelectionScreen/>}/>
-            <Route path="/mood-board" element={<MoodBoardInterface/>}/>
+            <Route path="/products" element={<Products/>}/>
             <Route path="/chatbot" element={<ChatbotPage/>}/>
+            <Route path="/favourites" element={<FavoritesPage/>}/>
           </Route>
       </Routes>
     </BrowserRouter>

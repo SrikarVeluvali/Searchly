@@ -43,13 +43,6 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
 jwt = JWTManager(app)
 
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-
 mongo_client = MongoClient('mongodb://localhost:27017/')
 db = mongo_client['product-recommendation-system']
 users_collection = db['users']
@@ -262,7 +255,94 @@ def user_register():
     access_token = create_access_token(identity={"email": email})
     new_user["_id"] = str(new_user["_id"]) 
 
-    return jsonify({"message": "Registered Successfully", "user": new_user, "access_token": access_token}), 201
+    return jsonify({"message": "Registered Successfully", "user": new_user, "access_token": access_token, "name":name, "email":email}), 201
+
+@app.route('/add_favourite', methods=['POST'])
+def add_fav():
+    """
+    Add a favorited product to the user's document in the tags_collection.
+    """
+    data = request.get_json()
+    email = data.get('email')
+    product = data.get('product')
+
+    if not (email and product):
+        print("Hi1")
+        return jsonify({"message": "Email and product are required"}), 400
+
+    # Add the product to the user's `fav_products` list in the `tags_collection`
+    tags_collection.update_one(
+        {"email": email},
+        {"$addToSet": {"fav_products": product}}  # Add the product to the list, ensuring no duplicates
+    )
+
+    # Retrieve the updated user's document for verification
+    updated_user = tags_collection.find_one({"email": email}, {"fav_products": 1})
+
+    if updated_user:
+        return jsonify({
+            "message": "Product favorited successfully!",
+            "fav_products": updated_user.get("fav_products", [])
+        }), 200
+    else:
+        print("Hi2")
+        return jsonify({"message": "Error updating favorites"}), 500
+@app.route('/get_favourites', methods=['POST'])
+def get_fav():
+    """
+    Retrieve the list of favorited products for a user.
+    """
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+
+    # Fetch the user's favorited products from the `tags_collection`
+    user_data = tags_collection.find_one({"email": email}, {"fav_products": 1})
+
+    if not user_data:
+        print("hi")
+        return jsonify({"message": "No data found for the provided email"}), 404
+
+    fav_products = user_data.get("fav_products", [])
+
+    return jsonify({
+        "message": "Favorited products retrieved successfully!",
+        "fav_products": fav_products
+    }), 200
+
+
+@app.route('/remove_favourite', methods=['POST'])
+def remove_fav():
+    """
+    Remove a favorited product from the user's list.
+    """
+    data = request.get_json()
+    email = data.get('email')
+    product_url = data.get('product_url')  # Use the product's URL as a unique identifier
+
+    if not (email and product_url):
+        return jsonify({"message": "Email and product URL are required"}), 400
+
+    # Remove the product from the `fav_products` array in the `tags_collection`
+    result = tags_collection.update_one(
+        {"email": email},
+        {"$pull": {"fav_products": {"url": product_url}}}  # Match product by its URL
+    )
+
+    if result.modified_count > 0:
+        # Fetch the updated favorites list for confirmation
+        updated_user = tags_collection.find_one({"email": email}, {"fav_products": 1})
+        fav_products = updated_user.get("fav_products", [])
+
+        return jsonify({
+            "message": "Product removed successfully!",
+            "fav_products": fav_products
+        }), 200
+    else:
+        return jsonify({"message": "Product not found or already removed"}), 404
+
 
 @app.route('/get_recommendations', methods=['POST'])
 def get_recommendations():
@@ -271,27 +351,36 @@ def get_recommendations():
 
     if not email:
         return jsonify({"message": "Email is required"}), 400
-    
-    existing_user = tags_collection.find_one({"email": email})
 
+    user_check = users_collection.find_one({"email": email})
+    if not user_check:
+        return jsonify({"message": "Oops something went wrong!"}), 400
+
+    # Find the user's tags or initialize them if not present
+    existing_user = tags_collection.find_one({"email": email})
     if not existing_user:
-        return jsonify({"message": "User Not Registered"}), 400
+        # Initialize the tags field for the user as an empty list
+        tags_collection.insert_one({"email": email, "tags": []})
+        return jsonify({"result": []}), 200
+
+    # If tags field is empty, return an empty result
+    user_tags = existing_user.get('tags', [])
+    if not user_tags:
+        return jsonify({"result": []}), 200
 
     results = []
-    result = {}
     seen = set()
 
-    for i in existing_user['tags'][:21]:
-        items = findItems(i, 3)
+    for tag in user_tags[:21]:
+        items = findItems(tag, 3)
         for item in items:
             # Use 'url' as the unique identifier for each product
             if item['url'] not in seen:
                 results.append(item)
                 seen.add(item['url'])
 
-    result['result'] = results
+    return jsonify({"result": results}), 200
 
-    return jsonify(result), 200
 
 @app.route('/userlogin', methods=['POST'])
 def user_login():
