@@ -7,18 +7,16 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 ## Table of Contents
 
 1. [Features](#features)
-2. [Project Architecture](#project-architecture)
-3. [Project Structure](#project-structure)
-4. [Tech Stack](#tech-stack)
-5. [Setup Instructions](#setup-instructions)
-6. [Detailed Component Overview](#detailed-component-overview)
+2. [Project Structure](#project-structure)
+3. [Tech Stack](#tech-stack)
+4. [Setup Instructions](#setup-instructions)
+5. [Detailed Component Overview](#detailed-component-overview)
     - [Backend](#backend)
     - [Frontend](#frontend)
-7. [Usage](#usage)
-8. [API Endpoints](#api-endpoints)
-9. [Screenshots](#screenshots)
-10. [Contributing](#contributing)
-11. [License](#license)
+6. [Usage](#usage)
+7. [API Endpoints](#api-endpoints)
+8. [Screenshots](#screenshots)
+9. [Contributing](#contributing)
 
 ---
 
