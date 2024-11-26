@@ -254,5 +254,5 @@ async def scrape(query):
     return products
 
 if __name__ == '__main__':
-    products = asyncio.run(scrape("Ladies wear"))
+    products = asyncio.run(scrape(""))
     print(products)
