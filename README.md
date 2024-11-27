@@ -57,7 +57,8 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 
 ---
 ## Architecture Diagram
-![image](https://github.com/user-attachments/assets/b1392a65-4243-4d7e-b5cd-2de2527dd6be)
+![Workflow](https://github.com/user-attachments/assets/4862b7ab-3111-4cc9-897e-ea5b2a052140)
+
 
 ---
 
@@ -79,7 +80,8 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 
 ---
 ## Workflow Diagram
-![image](https://github.com/user-attachments/assets/6f47b055-f784-4c98-afa4-95ba9a3acbef)
+![Workflow](https://github.com/user-attachments/assets/085f2d73-51e3-48d2-99aa-fc7f9460d456)
+
 
 ---
 
