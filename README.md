@@ -8,15 +8,17 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 
 1. [Features](#features)
 2. [Project Structure](#project-structure)
-3. [Tech Stack](#tech-stack)
-4. [Setup Instructions](#setup-instructions)
-5. [Detailed Component Overview](#detailed-component-overview)
+3. [Architecture Diagram](#architecture)
+4. [Tech Stack](#tech-stack)
+5. [Workflow Diagram](#workflow)
+6. [Setup Instructions](#setup-instructions)
+7. [Detailed Component Overview](#detailed-component-overview)
     - [Backend](#backend)
     - [Frontend](#frontend)
-6. [Usage](#usage)
-7. [API Endpoints](#api-endpoints)
-8. [Screenshots](#screenshots)
-9. [Contributing](#contributing)
+8. [Usage](#usage)
+9. [API Endpoints](#api-endpoints)
+10. [Screenshots](#screenshots)
+11. [Contributing](#contributing)
 
 ---
 
@@ -54,6 +56,10 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 ```
 
 ---
+## Architecture Diagram
+![image](https://github.com/user-attachments/assets/b1392a65-4243-4d7e-b5cd-2de2527dd6be)
+
+---
 
 ## Tech Stack
 
@@ -70,6 +76,10 @@ Welcome to **Searchly**, your go-to AI-powered e-commerce assistant! Searchly is
 - **Framer Motion** for animations
 - **Tailwind CSS** for styling
 - **Lucide Icons** for vector icons
+
+---
+## Workflow Diagram
+![image](https://github.com/user-attachments/assets/6f47b055-f784-4c98-afa4-95ba9a3acbef)
 
 ---
 
