@@ -16,12 +16,12 @@ from datetime import timedelta, datetime
 import warnings
 import jwt as pyjwt
 import logging
-from flask_mail import Mail, Message
 import time
 import pandas as pd
 from uuid import uuid4
 from langchain_huggingface import HuggingFaceEmbeddings
 from pinecone import Pinecone, ServerlessSpec
+import random
 
 load_dotenv()
 
@@ -35,7 +35,6 @@ client = Groq(api_key=GROQ_API_KEY)
 app = Flask(__name__)
 CORS(app)
 bcrypt = Bcrypt(app)
-mail = Mail(app)
 
 # Configure the JWT
 app.config['JWT_SECRET_KEY'] = 'ProductRecommendationSystemProjectKMIT'
@@ -160,7 +159,7 @@ def recommendfromdb():
                         "Listen attentively to their requirements, empathize with their situation, and craft a personalized response. "
                         "Provide your reply in JSON format with two fields: "
                         "1. 'message' - A personalized and empathetic message addressing the user's request. "
-                        "2. 'product_tags' - A list of four products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
+                        "2. 'product_tags' - A list of four products as strings that excatly align with the user's needs. These tags should be in such a way that they should understand the context behind user's query, and produce a few tags which help the user get relevent suggestions."
                         """Example for a json is: {
                         "message": "Aww, that's so exciting! I'm happy to help you find the paw-fect gift for your furry friend. Can you tell me a bit more about your dog? What's their breed, size, and personality like? That way, I can give you super tailored recommendations. In the meantime, here are some fun ideas to get you started:",
                         "product_tags": [
@@ -344,6 +343,8 @@ def remove_fav():
         return jsonify({"message": "Product not found or already removed"}), 404
 
 
+
+
 @app.route('/get_recommendations', methods=['POST'])
 def get_recommendations():
     data = request.get_json()
@@ -379,7 +380,11 @@ def get_recommendations():
                 results.append(item)
                 seen.add(item['url'])
 
+    # Shuffle the results
+    random.shuffle(results)
+
     return jsonify({"result": results}), 200
+
 
 
 @app.route('/userlogin', methods=['POST'])
@@ -489,7 +494,7 @@ def recommend():
                             "Dog Food"
                         ]
                         }"""
-                        f"The user asked: {user_query}"
+                        f"The user asked: '{user_query}'."
                     )
                 },
                 {
