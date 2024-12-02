@@ -73,10 +73,10 @@ def addDocument(content, link, image, rating, review_count, price, availability)
     # Convert NaNs and missing values to safe, descriptive defaults
     rating = str(rating) if pd.notnull(rating) else "No rating available"
     review_count = str(review_count) if pd.notnull(review_count) else "No reviews"
-    price = str(price) if pd.notnull(price) else "Price not available"
+    price = float(price) if pd.notnull(price) else 0  # Store missing price as 0
     availability = availability if availability else "Unknown"
 
-    # Ensure all values are strings to avoid Pinecone errors
+    # Ensure all values are strings (except price) to avoid errors
     vector_store.upsert(vectors=[{
         "id": str(uuid4()),  # Unique ID for each document
         "values": embedding,
@@ -86,12 +86,14 @@ def addDocument(content, link, image, rating, review_count, price, availability)
             "image": image,
             "rating": rating,
             "review_count": review_count,
-            "price": price,
+            "price": price,  # Stored as a numeric value
             "availability": availability
         }
     }])
+
     # print(f"Document added: {content}, {link}, {rating}")
 
+    
 # Function to search for similar items
 def findItems(query: str, numItems: int):
     try:
@@ -119,7 +121,7 @@ def findItems(query: str, numItems: int):
         formatted_results = [
             {
                 "name": result['metadata'].get('content', 'N/A'),
-                "price": result['metadata'].get('price', 'N/A'),
+                "price": "Not Available" if result['metadata'].get('price', 0) == 0 else result['metadata']['price'],
                 "url": result['metadata'].get('link', 'N/A'),
                 "image": result['metadata'].get('image', 'N/A'),
                 "rating": result['metadata'].get('rating', 'N/A'),
@@ -132,7 +134,7 @@ def findItems(query: str, numItems: int):
     except Exception as e:
         print(f"Error retrieving items: {str(e)}")
         return []
-    
+       
 @app.route('/recommend_from_db', methods=['POST'])
 def recommendfromdb():
     """
@@ -159,16 +161,19 @@ def recommendfromdb():
                         "Listen attentively to their requirements, empathize with their situation, and craft a personalized response. "
                         "Provide your reply in JSON format with two fields: "
                         "1. 'message' - A personalized and empathetic message addressing the user's request. "
-                        "2. 'product_tags' - A list of four products as strings that excatly align with the user's needs. These tags should be in such a way that they should understand the context behind user's query, and produce a few tags which help the user get relevent suggestions."
+                        "2. 'product_tags' - A list of six products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
                         """Example for a json is: {
                         "message": "Aww, that's so exciting! I'm happy to help you find the paw-fect gift for your furry friend. Can you tell me a bit more about your dog? What's their breed, size, and personality like? That way, I can give you super tailored recommendations. In the meantime, here are some fun ideas to get you started:",
                         "product_tags": [
-                            "Dog Toys",
-                            "Dog Beds",
-                            "Dog Food"
+                            "Indestructible Chew Toys for Aggressive Chewers",
+                            "Orthopedic Dog Beds for Large Dogs",
+                            "Grain-Free Natural Dog Food",
+                            "Interactive Puzzle Toys for Dogs",
+                            "Waterproof Dog Coats for Winter",
+                            "Portable Dog Water Bottles for Travel"
                         ]
                         }"""
-                        f"The user asked: {user_query}"
+                        f"The user asked: '{user_query}'."
                     )
                 },
                 {
@@ -187,8 +192,18 @@ def recommendfromdb():
         product_tags = response_data.get('product_tags', [])
         add_tags(email, product_tags)
         search_results = {}
+        url_set = set()
+
         for tag in product_tags:
-            search_results[tag] = findItems(tag,3)[0]
+            results = findItems(tag, 3)  # Fetch up to 3 results for the current tag
+            if not results:
+                continue  # Skip if no results are found
+
+            for result in results:
+                if result['url'] not in url_set:  # Ensure the URL is unique
+                    search_results[tag] = result
+                    url_set.add(result['url'])
+                    break  # Break to only add one unique product per tag
 
         # Add search results to the response data
         response_data['search_results'] = search_results
@@ -485,13 +500,16 @@ def recommend():
                         "Listen attentively to their requirements, empathize with their situation, and craft a personalized response. "
                         "Provide your reply in JSON format with two fields: "
                         "1. 'message' - A personalized and empathetic message addressing the user's request. "
-                        "2. 'product_tags' - A list of four products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
+                        "2. 'product_tags' - A list of six products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
                         """Example for a json is: {
                         "message": "Aww, that's so exciting! I'm happy to help you find the paw-fect gift for your furry friend. Can you tell me a bit more about your dog? What's their breed, size, and personality like? That way, I can give you super tailored recommendations. In the meantime, here are some fun ideas to get you started:",
                         "product_tags": [
-                            "Dog Toys",
-                            "Dog Beds",
-                            "Dog Food"
+                            "Indestructible Chew Toys for Aggressive Chewers",
+                            "Orthopedic Dog Beds for Large Dogs",
+                            "Grain-Free Natural Dog Food",
+                            "Interactive Puzzle Toys for Dogs",
+                            "Waterproof Dog Coats for Winter",
+                            "Portable Dog Water Bottles for Travel"
                         ]
                         }"""
                         f"The user asked: '{user_query}'."
@@ -513,9 +531,11 @@ def recommend():
         product_tags = response_data.get('product_tags', [])
         add_tags(email, product_tags)
         search_results = {}
+        url_set = set()
         for tag in product_tags:
-            search_results[tag] = search_product(tag)
-
+            result = search_product(tag)
+            if(not url_set.__contains__(result['url'])):
+                search_results[tag] = result
         # Add search results to the response data
         response_data['search_results'] = search_results
 

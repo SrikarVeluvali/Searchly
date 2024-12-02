@@ -108,33 +108,62 @@ export default function ProductRecommendations() {
 
   useEffect(() => {
     if (products.length === 0) {
-      setFilteredProducts([])
-      return
+      setFilteredProducts([]);
+      return;
     }
-
+  
     const filtered = products.filter((product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    const sorted = filtered.sort((a, b) => {
+    );
+  
+    // Sorting logic
+    const sorted = [...filtered].sort((a, b) => {
       if (sortBy === 'priceLowToHigh') {
-        const priceA = parseFloat(a.price.replace(/[^\d.]/g, '')) || 0
-        const priceB = parseFloat(b.price.replace(/[^\d.]/g, '')) || 0
-        return priceA - priceB
+        // Parse prices, treating "Not Available" as Infinity
+        const cleanedPriceA = a.price.replace(/[^\d]/g, ''); // Remove all non-numeric characters
+        const cleanedPriceB = b.price.replace(/[^\d]/g, ''); // Remove all non-numeric characters
+
+        console.log('Cleaned priceA:', cleanedPriceA);
+        console.log('Cleaned priceB:', cleanedPriceB);
+
+        const priceA = a.price === 'Not Available' ? Infinity : (parseFloat(cleanedPriceA) || Infinity);
+        const priceB = b.price === 'Not Available' ? Infinity : (parseFloat(cleanedPriceB) || Infinity);
+
+        console.log('Parsed priceA:', priceA);
+        console.log('Parsed priceB:', priceB);
+
+        return priceA-priceB
       } else if (sortBy === 'priceHighToLow') {
-        const priceA = parseFloat(a.price.replace(/[^\d.]/g, '')) || 0
-        const priceB = parseFloat(b.price.replace(/[^\d.]/g, '')) || 0
-        return priceB - priceA
+        // Parse prices, treating "Not Available" as 0
+        const cleanedPriceA = a.price.replace(/[^\d]/g, ''); // Remove all non-numeric characters
+        const cleanedPriceB = b.price.replace(/[^\d]/g, ''); // Remove all non-numeric characters
+
+        console.log('Cleaned priceA:', cleanedPriceA);
+        console.log('Cleaned priceB:', cleanedPriceB);
+
+        const priceA = a.price === 'Not Available' ? 0 : (parseFloat(cleanedPriceA) || 0);
+        const priceB = b.price === 'Not Available' ? 0 : (parseFloat(cleanedPriceB) || 0);
+
+        console.log('Parsed priceA:', priceA);
+        console.log('Parsed priceB:', priceB);
+
+        return priceB - priceA; // Sort in descending order
       } else if (sortBy === 'rating') {
-        const ratingA = parseFloat(a.rating || '0')
-        const ratingB = parseFloat(b.rating || '0')
-        return ratingB - ratingA
+        // Parse ratings, treating missing ratings as 0
+        const ratingA = parseFloat(a.rating || '0');
+        const ratingB = parseFloat(b.rating || '0');
+        return ratingB - ratingA; // Sort in descending order
       } else {
-        return filtered.indexOf(b) - filtered.indexOf(a)
+        // Default sorting order (if no sortBy criteria match)
+        return filtered.indexOf(b) - filtered.indexOf(a);
       }
-    })
-    console.log('Filtered Products:', sorted)
-    setFilteredProducts(sorted)
-  }, [searchQuery, sortBy, products])
+    });
+  
+    // Set sorted and filtered products
+    console.log("Filtered products",sorted)
+    setFilteredProducts(sorted);
+  
+  }, [products, searchQuery, sortBy]); // Make sure all dependencies are included
 
   const handleRefresh = () => {
     setIsRefreshing(true)
