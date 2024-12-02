@@ -73,10 +73,10 @@ def addDocument(content, link, image, rating, review_count, price, availability)
     # Convert NaNs and missing values to safe, descriptive defaults
     rating = str(rating) if pd.notnull(rating) else "No rating available"
     review_count = str(review_count) if pd.notnull(review_count) else "No reviews"
-    price = float(price) if pd.notnull(price) else 0  # Store missing price as 0
+    price = str(price) if pd.notnull(price) else "Price not available"
     availability = availability if availability else "Unknown"
 
-    # Ensure all values are strings (except price) to avoid errors
+    # Ensure all values are strings to avoid Pinecone errors
     vector_store.upsert(vectors=[{
         "id": str(uuid4()),  # Unique ID for each document
         "values": embedding,
@@ -86,14 +86,12 @@ def addDocument(content, link, image, rating, review_count, price, availability)
             "image": image,
             "rating": rating,
             "review_count": review_count,
-            "price": price,  # Stored as a numeric value
+            "price": price,
             "availability": availability
         }
     }])
-
     # print(f"Document added: {content}, {link}, {rating}")
 
-    
 # Function to search for similar items
 def findItems(query: str, numItems: int):
     try:
@@ -121,7 +119,7 @@ def findItems(query: str, numItems: int):
         formatted_results = [
             {
                 "name": result['metadata'].get('content', 'N/A'),
-                "price": "Not Available" if result['metadata'].get('price', 0) == 0 else result['metadata']['price'],
+                "price": result['metadata'].get('price', 'N/A'),
                 "url": result['metadata'].get('link', 'N/A'),
                 "image": result['metadata'].get('image', 'N/A'),
                 "rating": result['metadata'].get('rating', 'N/A'),
@@ -134,7 +132,7 @@ def findItems(query: str, numItems: int):
     except Exception as e:
         print(f"Error retrieving items: {str(e)}")
         return []
-       
+    
 @app.route('/recommend_from_db', methods=['POST'])
 def recommendfromdb():
     """
