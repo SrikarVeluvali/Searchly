@@ -46,6 +46,8 @@ mongo_client = MongoClient('mongodb://localhost:27017/')
 db = mongo_client['product-recommendation-system']
 users_collection = db['users']
 tags_collection = db['tags']
+history_collection = db['conversation_history']
+
 pc = Pinecone(api_key=PINECONE_API_KEY)
 # Define and initialize the Pinecone index
 index_name = "products"
@@ -66,6 +68,26 @@ vector_store = pc.Index(index_name)
 embeddings = HuggingFaceEmbeddings()
 SIMILARITY_THRESHOLD = 0.2
 
+# Function to save conversation to MongoDB
+def save_conversation(email, query, bot_response, tags, search_results):
+    history_entry = {
+        "timestamp": datetime.utcnow(),
+        "query": query,
+        "bot_response": bot_response,
+        "product_tags": tags,
+        "search_results": search_results
+    }
+    if history_collection.find_one({"email": email}):
+        history_collection.update_one(
+            {"email": email},
+            {"$push": {"history": history_entry}}
+        )
+    else:
+        history_document = {
+            "email": email,
+            "history": [history_entry]
+        }
+        history_collection.insert_one(history_document)
 # Function to add a document to Pinecone
 def addDocument(content, link, image, rating, review_count, price, availability):
     embedding = embeddings.embed_query(content)
@@ -145,21 +167,28 @@ def recommendfromdb():
     email = request.json.get('email','')
     if not (user_query and email):
         return jsonify({"error": "No query/email provided"}), 400
-
-    # Generate the response using Groq
-    try:
-        
-        completion = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
+    user_history = history_collection.find_one({"email": email})
+    history_messages = []
+    if user_history and "history" in user_history:
+        for entry in user_history["history"]:
+            history_messages.append({
+                "role": "user",
+                "content": entry["query"]
+            })
+            history_messages.append({
+                "role": "assistant",
+                "content": entry["bot_response"]
+            })
+    current_messages = [
                 {
                     "role": "user",
                     "content": (
-                        "You are a professional product recommendation specialist dedicated to deeply understanding the user's needs and preferences based on their inquiry. "
+                        "You are a professional product recommendation specialist dedicated to deeply understanding the user's needs and preferences based on their inquiry and their history. "
+                        f"Here is the history of the user: {history_messages}"
                         "Listen attentively to their requirements, empathize with their situation, and craft a personalized response. "
                         "Provide your reply in JSON format with two fields: "
                         "1. 'message' - A personalized and empathetic message addressing the user's request. "
-                        "2. 'product_tags' - A list of six products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
+                        "2. 'product_tags' - A list of 3 to 5 as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
                         """Example for a json is: {
                         "message": "Aww, that's so exciting! I'm happy to help you find the paw-fect gift for your furry friend. Can you tell me a bit more about your dog? What's their breed, size, and personality like? That way, I can give you super tailored recommendations. In the meantime, here are some fun ideas to get you started:",
                         "product_tags": [
@@ -178,7 +207,12 @@ def recommendfromdb():
                     "role": "assistant",
                     "content": "```json"
                 }
-            ],
+            ]
+    try:
+        
+        completion = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=current_messages,
             stop="```",
         )
         # Extract and parse the JSON response
@@ -188,6 +222,7 @@ def recommendfromdb():
 
         # Populate 'search_results' with data for each product tag
         product_tags = response_data.get('product_tags', [])
+        bot_response = response_data.get('message', '')
         add_tags(email, product_tags)
         search_results = {}
         url_set = set()
@@ -205,7 +240,7 @@ def recommendfromdb():
 
         # Add search results to the response data
         response_data['search_results'] = search_results
-
+        save_conversation(email, user_query, bot_response, product_tags, search_results)
         return jsonify(response_data)
 
     except Exception as e:
@@ -442,8 +477,10 @@ def search_product(query):
         # Perform the scrape
         top_results = asyncio.run(scrape(query))
         print(f"{len(top_results)} Results found")
+        print("hi1")
         
         if top_results:
+            print("hi2")
             # Loop through the results and add each one to Pinecone
             for result in top_results:
                 addDocument(
@@ -466,6 +503,7 @@ def search_product(query):
                 "reviews": top_results[0].get('review_count', 'N/A')
             }
         else:
+            print("hi3")
             return {"error": "No results found"}
     except Exception as e:
         print(f"Error fetching the products!: {e}")
@@ -498,7 +536,7 @@ def recommend():
                         "Listen attentively to their requirements, empathize with their situation, and craft a personalized response. "
                         "Provide your reply in JSON format with two fields: "
                         "1. 'message' - A personalized and empathetic message addressing the user's request. "
-                        "2. 'product_tags' - A list of six products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
+                        "2. 'product_tags' - A list of 3 to 5 products as strings that excatly align with the user's needs. These tags should be formulated so that when searched on Amazon, the exact product the user is looking for appears first."
                         """Example for a json is: {
                         "message": "Aww, that's so exciting! I'm happy to help you find the paw-fect gift for your furry friend. Can you tell me a bit more about your dog? What's their breed, size, and personality like? That way, I can give you super tailored recommendations. In the meantime, here are some fun ideas to get you started:",
                         "product_tags": [
@@ -527,20 +565,39 @@ def recommend():
 
         # Populate 'search_results' with data for each product tag
         product_tags = response_data.get('product_tags', [])
+        bot_response = response_data.get('message', '')
         add_tags(email, product_tags)
         search_results = {}
         url_set = set()
         for tag in product_tags:
             result = search_product(tag)
             if(not url_set.__contains__(result['url'])):
+                print("hi4")
                 search_results[tag] = result
+                print("hi5")
         # Add search results to the response data
         response_data['search_results'] = search_results
-
+        save_conversation(email, user_query, bot_response, product_tags, search_results)
         return jsonify(response_data)
 
     except Exception as e:
+        print("hi6")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/get_history', methods=['POST'])
+def get_history():
+    """
+    Retrieves the conversation history for a user.
+    """
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+
+    history_entries = list(history_collection.find({"email": email}, {"_id": 0}))
+
+    return jsonify({"history": history_entries}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
