@@ -15,33 +15,41 @@ HEADERS = ({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 
 def get_title(product, source):
-    brand_string = ""
+    # brand_string = ""
+    # if source == "amazon":
+    #     try:
+    #         title = product.find("span", attrs={'class':'a-size-medium a-color-base a-text-normal'})
+    #         title_value = title.text
+    #         title_string = title_value.strip()
+
+    #     except AttributeError:
+    #         try:
+    #             brand = product.find("span", attrs={'class':'a-size-base-plus a-color-base'})
+    #             brand_value = brand.text
+    #             brand_string = brand_value.strip() + " "
+    #         except:
+    #             brand_string = ""
+
+    #         try:
+    #             title = product.find("span", attrs={'class':'a-size-base-plus a-color-base a-text-normal'})
+    #             title_value = title.text
+    #             title_string = title_value.strip()
+    #         except:
+    #             title_string = ""
+
+    #     return brand_string + title_string
     if source == "amazon":
         try:
-            title = product.find("span", attrs={'class':'a-size-medium a-color-base a-text-normal'})
-            title_value = title.text
-            title_string = title_value.strip()
-
+            title_string = product.find("img", attrs={'class':'s-image'}).get('alt')
         except AttributeError:
-            try:
-                brand = product.find("span", attrs={'class':'a-size-base-plus a-color-base'})
-                brand_value = brand.text
-                brand_string = brand_value.strip() + " "
-            except:
-                brand_string = ""
+            title_string = ""
 
-            try:
-                title = product.find("span", attrs={'class':'a-size-base-plus a-color-base a-text-normal'})
-                title_value = title.text
-                title_string = title_value.strip()
-            except:
-                title_string = ""
-
-        return brand_string + title_string
+        return title_string
     
     elif source == "flipkart":
+        brand_string=""
         try:            
-            title_string = product.find("a", attrs={'class':'wjcEIp'}).get('title')
+            title_string = product.find("img", attrs={'class':'DByuf4'}).get('alt')
             
         except AttributeError:
             try:
@@ -138,21 +146,29 @@ def get_link(product, source):
             raw_link = product.find("a", attrs={'class': 'a-link-normal s-underline-text s-underline-link-text s-link-style a-text-normal'})
             link = "https://www.amazon.in" + raw_link.get('href')
         except AttributeError:
-            link = ""
+            try:
+                raw_link = product.find("a", attrs={'class': 'a-link-normal s-no-outline'})
+                link = "https://www.amazon.in" + raw_link.get('href')
+            except:
+                link = ""
 
         return link
     
     elif source == "flipkart":
+        # try:
+        #     raw_link = product.find("a", attrs={'class': 'VJA3rP'})
+        #     link = "https://www.flipkart.com" + raw_link.get('href')
+        # except AttributeError:
+        #     try:
+        #         raw_link = product.find("a", attrs={'class': 'rPDeLR'})
+        #         link = "https://www.flipkart.com" + raw_link.get('href')
+        #     except:
+        #         link = ""
         try:
-            raw_link = product.find("a", attrs={'class': 'VJA3rP'})
+            raw_link = product.find("a", attrs={'rel': 'noopener noreferrer'})
             link = "https://www.flipkart.com" + raw_link.get('href')
-        except AttributeError:
-            try:
-                raw_link = product.find("a", attrs={'class': 'rPDeLR'})
-                link = "https://www.flipkart.com" + raw_link.get('href')
-            except:
-                link = ""
-
+        except:
+            link = ""
         return link
 
 async def fetch_page(session, url, retries=3, timeout=10):

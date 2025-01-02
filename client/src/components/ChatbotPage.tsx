@@ -209,8 +209,15 @@ export default function ChatbotPage() {
     initializeFavorites();
   }, []);
 
-  const clearChat = () => {
+  const clearChat = async () => {
     localStorage.removeItem('chatMessages');
+    const response = await fetch('http://localhost:5000/clear_chat_history', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: localStorage.getItem("email") }),
+    });
     setMessages([
       { id: 1, text: "Hello! I'm Aivy, your AI shopping assistant. How can I help you find the perfect product today?", sender: 'bot' }
     ]);

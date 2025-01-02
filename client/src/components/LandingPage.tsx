@@ -115,15 +115,6 @@ export default function LandingPage() {
         >
           {/* Search form content removed as per the previous code */}
         </motion.form>
-        <a href="https://groq.com" target="_blank" rel="noopener noreferrer">
-  <img
-    src="https://groq.com/wp-content/uploads/2024/03/PBG-mark1-color.svg"
-    alt="Powered by Groq for fast inference."
-    className="w-32 h-32 mx-auto"
-  />
-</a>
-
-
         <motion.div
           className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-16"
           initial={{ opacity: 0, y: 20 }}
